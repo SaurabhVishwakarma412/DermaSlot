@@ -56,6 +56,10 @@ export const getDoctors = () => {
   return api.get("/doctors");
 };
 
+export const getAvailableSlots = (doctorId, date) => {
+  return api.get(`/doctors/${doctorId}/available-slots?date=${encodeURIComponent(date)}`);
+};
+
 //Prescription
 export const getPrescriptions = () => {
   return api.get("/prescriptions");

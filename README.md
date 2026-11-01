@@ -1,6 +1,6 @@
 # 🧒 Pediatric Teledermatology Platform
 
-A full-stack **MERN** (MongoDB, Express.js, React.js, Node.js) based web application that enables parents to remotely consult pediatric dermatologists by submitting images of their child’s skin conditions for diagnosis and review.
+A full-stack **MERN** (MongoDB, Express.js, React.js, Node.js) based web application that enables parents to consult pediatric dermatologists online or book in-person clinic visits.
 
 ---
 
@@ -8,7 +8,8 @@ A full-stack **MERN** (MongoDB, Express.js, React.js, Node.js) based web applica
 
 ### 👨‍👩‍👧 Patient Side
 - Register/Login to the platform
-- Submit cases with skin issue description and image upload
+- Submit online cases with skin issue details and image uploads
+- Book an in-person clinic visit with patient details, a selected doctor, and an available 15-minute appointment slot; receive a token to present at the clinic
 - Track status of submitted dermatology cases
 - View doctor's diagnosis and recommendations
 
@@ -153,9 +154,14 @@ The admin can sign in at `/admin/login` and create doctor accounts from `/admin/
 
 ## 🩻 Case Submission Workflow
 ```
-Parent Uploads Image + Details
+Parent Chooses Online Consultation or Offline Clinic Visit
 ↓
-Stored via Multer & Linked to MongoDB
+Online: Parent Submits Case Details and Images
+Offline: Parent Enters Patient Details and Books a 15-Minute Slot
+↓
+Case Stored and Routed to Selected Doctor
+↓
+Offline Visit Receives a Clinic Token; Online Case Continues Through Doctor Review
 ↓
 Doctor Reviews Case
 ↓
@@ -235,4 +241,3 @@ B.Tech CSE • Lovely Professional University
 ---
 
 🌟 **Star this repo** if you like the project!  
-

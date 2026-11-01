@@ -7,6 +7,7 @@ import {
   X,
   AlertCircle,
   CheckCircle,
+  Calendar,
   Clock,
   User,
   Thermometer,
@@ -14,7 +15,12 @@ import {
   Shield,
 } from "lucide-react";
 
-import { getDoctors, submitCase } from "../services/patientAPI";
+import { getAvailableSlots, getDoctors, submitCase } from "../services/patientAPI";
+
+const getLocalDate = (date) => {
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return localDate.toISOString().split("T")[0];
+};
 
 const SubmitCase = () => {
   const navigate = useNavigate();
@@ -44,6 +50,8 @@ const SubmitCase = () => {
     patientAge: "",
     patientGender: "",
     visitType: "online",
+    appointmentDate: getLocalDate(new Date(Date.now() + 86400000)),
+    timeSlot: "",
     bodyPart: "",
     severity: "moderate",
     previousTreatments: "",
@@ -57,11 +65,15 @@ const SubmitCase = () => {
 
   const [doctors, setDoctors] = useState([]);
   const [doctorsLoading, setDoctorsLoading] = useState(true);
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotsError, setSlotsError] = useState("");
 
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [submittedCase, setSubmittedCase] = useState(null);
   const [activeStep, setActiveStep] = useState(1);
   const [uploadProgress, setUploadProgress] = useState(0);
 
@@ -78,6 +90,39 @@ const SubmitCase = () => {
     };
     loadDoctors();
   }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadAvailableSlots = async () => {
+      if (form.visitType !== "offline" || !form.doctorId || !form.appointmentDate) {
+        setAvailableSlots([]);
+        setSlotsError("");
+        setSlotsLoading(false);
+        return;
+      }
+
+      setSlotsLoading(true);
+      setSlotsError("");
+      setAvailableSlots([]);
+      try {
+        const response = await getAvailableSlots(form.doctorId, form.appointmentDate);
+        if (active) setAvailableSlots(response.data || []);
+      } catch (requestError) {
+        if (active) {
+          setAvailableSlots([]);
+          setSlotsError(requestError.response?.data?.message || "Unable to load appointment slots.");
+        }
+      } finally {
+        if (active) setSlotsLoading(false);
+      }
+    };
+
+    loadAvailableSlots();
+    return () => {
+      active = false;
+    };
+  }, [form.visitType, form.doctorId, form.appointmentDate]);
 
   const bodyParts = [
     "Face",
@@ -136,7 +181,20 @@ const SubmitCase = () => {
     setForm((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
+      ...(["doctorId", "appointmentDate"].includes(name) ? { timeSlot: "" } : {}),
     }));
+  };
+
+  const handleVisitTypeChange = (visitType) => {
+    setForm((prev) => ({
+      ...prev,
+      visitType,
+      ...(visitType === "online"
+        ? { appointmentDate: "", timeSlot: "" }
+        : { appointmentDate: prev.appointmentDate || getLocalDate(new Date(Date.now() + 86400000)) }),
+    }));
+    setActiveStep(1);
+    setError("");
   };
 
   const handleSymptomToggle = (symptom) => {
@@ -173,8 +231,18 @@ const SubmitCase = () => {
   const validateStep = (step) => {
     switch (step) {
       case 1:
-        if (!form.title || !form.patientAge || !form.patientGender || !form.patientName || !form.doctorId) {
+        if (
+          (form.visitType === "online" && !form.title) ||
+          !form.patientAge ||
+          !form.patientGender ||
+          !form.patientName.trim() ||
+          !form.doctorId
+        ) {
           setError("Please fill in all required fields");
+          return false;
+        }
+        if (form.visitType === "offline" && (!form.appointmentDate || !form.timeSlot)) {
+          setError("Please choose an appointment date and available time slot.");
           return false;
         }
         return true;
@@ -200,7 +268,9 @@ const SubmitCase = () => {
   const nextStep = () => {
     if (validateStep(activeStep)) {
       setError("");
-      if (activeStep < 4) {
+      if (form.visitType === "offline" && activeStep === 1) {
+        setActiveStep(4);
+      } else if (activeStep < 4) {
         setActiveStep(activeStep + 1);
       } else {
         handleSubmit();
@@ -210,7 +280,9 @@ const SubmitCase = () => {
 
   const prevStep = () => {
     setError("");
-    if (activeStep > 1) {
+    if (form.visitType === "offline" && activeStep === 4) {
+      setActiveStep(1);
+    } else if (activeStep > 1) {
       setActiveStep(activeStep - 1);
     }
   };
@@ -220,16 +292,29 @@ const SubmitCase = () => {
     setError("");
     setSuccess("");
 
+    let progressInterval;
     try {
       const formData = new FormData();
+      const onlineForm = { ...form };
+      delete onlineForm.appointmentDate;
+      delete onlineForm.timeSlot;
 
-      // Maintain compatibility for older schema fields
-      const dataToSend = {
-        ...form,
-        childAge: form.patientAge,
-        childName: form.patientName,
-        childGender: form.patientGender,
-      };
+      const dataToSend = form.visitType === "offline"
+        ? {
+            visitType: form.visitType,
+            doctorId: form.doctorId,
+            patientName: form.patientName,
+            patientAge: form.patientAge,
+            patientGender: form.patientGender,
+            appointmentDate: form.appointmentDate,
+            timeSlot: form.timeSlot,
+          }
+        : {
+            ...onlineForm,
+            childAge: form.patientAge,
+            childName: form.patientName,
+            childGender: form.patientGender,
+          };
 
       // Append form data
       Object.entries(dataToSend).forEach(([key, value]) => {
@@ -242,27 +327,39 @@ const SubmitCase = () => {
       });
 
       // Simulate upload progress
-      const interval = setInterval(() => {
-        setUploadProgress((prev) => {
-          if (prev >= 90) {
-            clearInterval(interval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 200);
+      if (form.visitType === "online") {
+        progressInterval = setInterval(() => {
+          setUploadProgress((prev) => {
+            if (prev >= 90) {
+              clearInterval(progressInterval);
+              return 90;
+            }
+            return prev + 10;
+          });
+        }, 200);
+      }
 
-      await submitCase(formData);
+      const response = await submitCase(formData);
 
-      clearInterval(interval);
-      setUploadProgress(100);
+      clearInterval(progressInterval);
+      if (form.visitType === "online") setUploadProgress(100);
+      setSubmittedCase(response.data);
 
-      setSuccess(
-        "Skin case submitted successfully. You can track review updates from your dashboard.",
-      );
-
-      setTimeout(() => navigate("/parent/dashboard"), 3000);
+      setSuccess(form.visitType === "offline"
+        ? "Clinic visit booked successfully."
+        : "Skin case submitted successfully.");
     } catch (err) {
+      clearInterval(progressInterval);
+      if (err.response?.status === 409 && form.visitType === "offline") {
+        setForm((prev) => ({ ...prev, timeSlot: "" }));
+        setActiveStep(1);
+        try {
+          const response = await getAvailableSlots(form.doctorId, form.appointmentDate);
+          setAvailableSlots(response.data || []);
+        } catch (refreshError) {
+          setSlotsError(refreshError.response?.data?.message || "Unable to refresh appointment slots.");
+        }
+      }
       setError(
         err.response?.data?.message ||
           "Failed to submit case. Please try again.",
@@ -271,6 +368,8 @@ const SubmitCase = () => {
       setLoading(false);
     }
   };
+
+  const progressSteps = form.visitType === "offline" ? [1, 4] : [1, 2, 3, 4];
 
   return (
     <main
@@ -288,10 +387,12 @@ const SubmitCase = () => {
             </button>
             <div>
               <h1 className="text-3xl font-bold text-gray-800">
-                Submit New Dermatology Case
+                {form.visitType === "offline" ? "Book a Clinic Visit" : "Submit New Dermatology Case"}
               </h1>
               <p className="text-gray-600">
-                Document symptoms, affected areas, and clear images for a focused dermatology review
+                {form.visitType === "offline"
+                  ? "Choose a doctor and appointment time. No medical details are needed to book an in-person visit."
+                  : "Document symptoms, affected areas, and clear images for a focused dermatology review"}
               </p>
             </div>
           </div>
@@ -299,7 +400,7 @@ const SubmitCase = () => {
           {/* Progress Steps */}
           <div className="mb-4">
             <div className="flex justify-between items-center mb-4">
-              {[1, 2, 3, 4].map((step) => (
+              {progressSteps.map((step, index) => (
                 <div
                   key={step}
                   className="flex flex-col items-center relative z-10"
@@ -313,7 +414,7 @@ const SubmitCase = () => {
                           : "bg-white text-gray-400 border-gray-300"
                     }`}
                   >
-                    {step < activeStep ? <CheckCircle size={20} /> : step}
+                    {step < activeStep ? <CheckCircle size={20} /> : index + 1}
                   </div>
                   <span className="text-xs mt-2 font-medium">
                     {step === 1
@@ -329,7 +430,7 @@ const SubmitCase = () => {
               <div className="absolute left-0 right-0 top-6 h-1 bg-gray-200 -z-10">
                 <div
                   className="h-full bg-blue-600 transition-all duration-300"
-                  style={{ width: `${((activeStep - 1) / 3) * 100}%` }}
+                  style={{ width: `${(progressSteps.indexOf(activeStep) / (progressSteps.length - 1)) * 100}%` }}
                 ></div>
               </div>
             </div>
@@ -353,6 +454,40 @@ const SubmitCase = () => {
               <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
               <div>
                 <p className="text-green-700 font-medium">{success}</p>
+                {submittedCase?.visitType === "offline" && submittedCase.visitToken && (
+                  <div className="mt-3 rounded-lg border border-green-200 bg-white p-4">
+                    <p className="text-sm font-semibold text-gray-800">
+                      Your clinic visit token
+                    </p>
+                    <p className="mt-1 font-mono text-2xl font-bold tracking-wider text-green-800">
+                      {submittedCase.visitToken}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-600">
+                      Show this token at the clinic for your consultation.
+                    </p>
+                    <p className="mt-2 text-sm text-gray-700">
+                      Appointment: {submittedCase.appointmentDate} • {submittedCase.timeSlot}
+                    </p>
+                  </div>
+                )}
+                {submittedCase && (
+                  <div className="mt-3 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/cases/${submittedCase._id}`)}
+                      className="text-sm font-semibold text-green-800 underline"
+                    >
+                      View case details
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => navigate("/parent/dashboard")}
+                      className="text-sm font-semibold text-green-800 underline"
+                    >
+                      Go to dashboard
+                    </button>
+                  </div>
+                )}
                 {uploadProgress > 0 && (
                   <div className="mt-2">
                     <div className="w-full bg-gray-200 rounded-full h-2">
@@ -362,7 +497,7 @@ const SubmitCase = () => {
                       ></div>
                     </div>
                     <p className="text-xs text-green-700 mt-1">
-                      Uploading... {uploadProgress}%
+                      {uploadProgress === 100 ? "Upload complete" : `Uploading... ${uploadProgress}%`}
                     </p>
                   </div>
                 )}
@@ -383,6 +518,36 @@ const SubmitCase = () => {
 
               <div className="space-y-6">
                 <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    How would you like to consult? *
+                  </label>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => handleVisitTypeChange("online")}
+                      className={`rounded-lg border p-3 text-sm font-semibold transition ${
+                        form.visitType === "online"
+                          ? "border-blue-600 bg-blue-600 text-white"
+                          : "border-gray-200 bg-gray-50 text-gray-700 hover:border-blue-300"
+                      }`}
+                    >
+                      💻 Online Consultation
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleVisitTypeChange("offline")}
+                      className={`rounded-lg border p-3 text-sm font-semibold transition ${
+                        form.visitType === "offline"
+                          ? "border-blue-600 bg-blue-600 text-white"
+                          : "border-gray-200 bg-gray-50 text-gray-700 hover:border-blue-300"
+                      }`}
+                    >
+                      🏥 Offline Visit (In-Person)
+                    </button>
+                  </div>
+                </div>
+
+                {form.visitType === "online" && <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Case Title (Brief Description) *
                   </label>
@@ -398,7 +563,7 @@ const SubmitCase = () => {
                   <p className="text-xs text-gray-500 mt-1">
                     Give a brief title that describes the main concern
                   </p>
-                </div>
+                </div>}
 
                 <div className="grid md:grid-cols-3 gap-6">
                   <div>
@@ -478,37 +643,7 @@ const SubmitCase = () => {
                   )}
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Visit Type Preference *
-                    </label>
-                    <div className="grid grid-cols-2 gap-4">
-                      <button
-                        type="button"
-                        onClick={() => handleChange({ target: { name: 'visitType', value: 'online' } })}
-                        className={`p-3 text-sm rounded-lg border font-semibold transition ${
-                          form.visitType === 'online'
-                            ? "bg-blue-600 text-white border-blue-600"
-                            : "bg-gray-50 border-gray-200 text-gray-700 hover:border-blue-300"
-                        }`}
-                      >
-                        💻 Online Consultation
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleChange({ target: { name: 'visitType', value: 'offline' } })}
-                        className={`p-3 text-sm rounded-lg border font-semibold transition ${
-                          form.visitType === 'offline'
-                            ? "bg-blue-600 text-white border-blue-600"
-                            : "bg-gray-50 border-gray-200 text-gray-700 hover:border-blue-300"
-                        }`}
-                      >
-                        🏥 Offline Visit (In-Person)
-                      </button>
-                    </div>
-                  </div>
-
+                {form.visitType === "online" && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Duration of Problem *
@@ -526,7 +661,60 @@ const SubmitCase = () => {
                       />
                     </div>
                   </div>
-                </div>
+                )}
+
+                {form.visitType === "offline" && (
+                  <section className="space-y-4 rounded-xl border border-blue-100 bg-blue-50/60 p-5">
+                    <h3 className="font-semibold text-gray-800">Choose your clinic appointment</h3>
+                    <div>
+                      <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                        Appointment Date *
+                      </label>
+                      <input
+                        type="date"
+                        name="appointmentDate"
+                        value={form.appointmentDate}
+                        min={getLocalDate(new Date())}
+                        onChange={handleChange}
+                        required
+                        className="w-full max-w-xs rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <p className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-700">
+                        <Clock className="h-4 w-4 text-gray-400" />
+                        Available 15-minute slots *
+                      </p>
+                      {!form.doctorId ? (
+                        <p className="text-sm text-gray-600">Choose a doctor to see available times.</p>
+                      ) : slotsLoading ? (
+                        <p className="text-sm text-gray-600">Loading available times...</p>
+                      ) : slotsError ? (
+                        <p className="text-sm text-red-600">{slotsError}</p>
+                      ) : availableSlots.length ? (
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                          {availableSlots.map((slot) => (
+                            <button
+                              key={slot}
+                              type="button"
+                              onClick={() => setForm((prev) => ({ ...prev, timeSlot: slot }))}
+                              className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                                form.timeSlot === slot
+                                  ? "border-blue-600 bg-blue-600 text-white"
+                                  : "border-gray-200 bg-white text-gray-700 hover:border-blue-400"
+                              }`}
+                            >
+                              {slot}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-600">No appointment slots are available on this date.</p>
+                      )}
+                    </div>
+                  </section>
+                )}
               </div>
             </>
           )}
@@ -722,6 +910,48 @@ const SubmitCase = () => {
 
           {/* Step 4: Review & Submit */}
           {activeStep === 4 && (
+            form.visitType === "offline" ? (
+              <section className="space-y-5">
+                <h2 className="flex items-center gap-2 text-xl font-bold text-gray-800">
+                  <CheckCircle className="h-5 w-5 text-blue-600" />
+                  Confirm Clinic Visit
+                </h2>
+                <p className="text-sm text-gray-600">
+                  Review your patient information and appointment before booking.
+                </p>
+                <div className="grid gap-4 rounded-xl bg-gray-50 p-5 sm:grid-cols-2">
+                  <div>
+                    <p className="text-sm text-gray-600">Patient Name</p>
+                    <p className="font-medium">{form.patientName}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Patient Age</p>
+                    <p className="font-medium">{form.patientAge} years</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Patient Gender</p>
+                    <p className="font-medium capitalize">{form.patientGender}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Selected Doctor</p>
+                    <p className="font-medium">
+                      {doctors.find((doctor) => String(doctor._id) === form.doctorId)?.name || "Not selected"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Appointment Date</p>
+                    <p className="font-medium">{form.appointmentDate}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Appointment Time</p>
+                    <p className="font-medium">{form.timeSlot}</p>
+                  </div>
+                </div>
+                <p className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
+                  A clinic visit token will be generated after the booking is confirmed. Show it when you arrive at the clinic.
+                </p>
+              </section>
+            ) : (
             <>
               <h2 className="text-xl font-bold text-gray-800  flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-blue-600" />
@@ -835,6 +1065,7 @@ const SubmitCase = () => {
                 </div>
               </div>
             </>
+            )
           )}
 
           {/* Navigation Buttons */}
@@ -852,9 +1083,9 @@ const SubmitCase = () => {
             <button
               type="button"
               onClick={nextStep}
-              disabled={loading}
+              disabled={loading || Boolean(submittedCase)}
               className={`px-8 py-3 rounded-lg font-semibold transition-all ${
-                loading
+                loading || submittedCase
                   ? "bg-blue-400 cursor-not-allowed"
                   : "bg-blue-600 hover:bg-blue-700 transform hover:-translate-y-0.5"
               } text-white shadow-lg ml-auto`}
@@ -864,8 +1095,10 @@ const SubmitCase = () => {
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3 inline-block"></div>
                   Submitting...
                 </>
+              ) : submittedCase ? (
+                "Case Submitted"
               ) : activeStep === 4 ? (
-                "Submit Case"
+                form.visitType === "offline" ? "Book Clinic Visit" : "Submit Case"
               ) : (
                 "Continue →"
               )}

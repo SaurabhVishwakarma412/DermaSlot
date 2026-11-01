@@ -26,6 +26,8 @@ const caseSchema = new mongoose.Schema(
 
     visitType: { type: String, enum: ["online", "offline"], default: "online" },
 
+    visitToken: { type: String, unique: true, sparse: true },
+
     appointmentDate: { type: String, default: null },
 
     timeSlot: { type: String, default: null },
@@ -52,4 +54,3 @@ const caseSchema = new mongoose.Schema(
 );
 
 module.exports = mongoose.model("Case", caseSchema);
-

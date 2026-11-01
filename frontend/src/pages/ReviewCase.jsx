@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { getCaseByIdDoctor, reviewCase, completeCase, getBookedSlots } from "../services/DoctorApi.js";
+import getAppointmentSlots from "../utils/appointmentSlots";
 import { 
   ChevronLeft, 
   Calendar, 
@@ -35,25 +36,7 @@ const ReviewCase = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const allSlots = [
-    "09:00 AM - 09:30 AM",
-    "09:30 AM - 10:00 AM",
-    "10:00 AM - 10:30 AM",
-    "10:30 AM - 11:00 AM",
-    "11:00 AM - 11:30 AM",
-    "11:30 AM - 12:00 PM",
-    "12:00 PM - 12:30 PM",
-    "12:30 PM - 01:00 PM",
-    "01:00 PM - 01:30 PM",
-    "02:00 PM - 02:30 PM",
-    "02:30 PM - 03:00 PM",
-    "03:00 PM - 03:30 PM",
-    "03:30 PM - 04:00 PM",
-    "04:00 PM - 04:30 PM",
-    "04:30 PM - 05:00 PM",
-    "05:00 PM - 05:30 PM",
-    "05:30 PM - 06:00 PM"
-  ];
+  const allSlots = getAppointmentSlots();
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -173,7 +156,7 @@ const ReviewCase = () => {
             Schedule Appointment — {caseData ? formatCaseId(caseData._id) : "Loading..."}
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Review patient case details and assign a 30-minute time slot.
+            Review patient case details and assign a 15-minute time slot.
           </p>
         </div>
 
@@ -222,6 +205,12 @@ const ReviewCase = () => {
                     {caseData.visitType === 'offline' ? "🏥 Offline Visit" : "💻 Online Visit"}
                   </p>
                 </div>
+                {caseData.visitType === "offline" && caseData.visitToken && (
+                  <div>
+                    <p className="text-gray-500">Clinic Visit Token</p>
+                    <p className="font-mono font-semibold">{caseData.visitToken}</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-gray-500">Duration</p>
                   <p className="font-semibold">{caseData.duration || "N/A"}</p>
@@ -282,12 +271,14 @@ const ReviewCase = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
                   <Clock className="w-4 h-4 text-gray-400" />
-                  Select 30-Minute Time Slot *
+                  Select 15-Minute Time Slot *
                 </label>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {allSlots.map((slot) => {
-                    const isBooked = bookedSlots.includes(slot);
+                    const isBooked = bookedSlots.includes(slot) && (
+                      slot !== caseData.timeSlot || selectedDate !== caseData.appointmentDate
+                    );
                     const isSelected = selectedSlot === slot;
 
                     return (

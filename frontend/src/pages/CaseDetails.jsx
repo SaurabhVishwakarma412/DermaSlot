@@ -18,7 +18,8 @@ import {
   MessageSquare,
   Download,
   Share2,
-  CalendarPlus
+  CalendarPlus,
+  Shield
 } from "lucide-react";
 
 const statusConfig = {
@@ -288,6 +289,9 @@ const CaseDetails = () => {
                 <InfoCard icon={User} label="Patient Age" value={`${caseData.patientAge || caseData.childAge || "N/A"} years`} darkMode={darkMode} />
                 <InfoCard icon={User} label="Patient Gender" value={caseData.patientGender || caseData.childGender || "N/A"} darkMode={darkMode} />
                 <InfoCard icon={Clock} label="Visit Preference" value={caseData.visitType === 'offline' ? "🏥 Offline Visit" : "💻 Online Consultation"} darkMode={darkMode} />
+                {caseData.visitType === "offline" && caseData.visitToken && (
+                  <InfoCard icon={Shield} label="Clinic Visit Token" value={caseData.visitToken} darkMode={darkMode} />
+                )}
                 {caseData.timeSlot && caseData.appointmentDate && (
                   <>
                     <InfoCard icon={Calendar} label="Appointment Date" value={new Date(caseData.appointmentDate).toLocaleDateString()} darkMode={darkMode} />

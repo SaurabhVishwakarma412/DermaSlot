@@ -1,8 +1,10 @@
 // backend/controllers/doctorController.js
 const bcrypt = require("bcryptjs");
+const mongoose = require("mongoose");
 const Doctor = require("../models/Doctor");
 const Case = require("../models/Case");
 const generateToken = require("../utils/generateToken");
+const { getAppointmentSlots, getOccupiedAppointmentSlots } = require("../utils/appointmentSlots");
 
 // Admin-only doctor provisioning. Doctor credentials are never accepted from
 // the public registration endpoint.
@@ -161,10 +163,40 @@ exports.getBookedSlots = async (req, res) => {
       appointmentDate: date,
       timeSlot: { $ne: null }
     });
-    const bookedSlots = bookedCases.map(c => c.timeSlot);
+    const bookedSlots = getOccupiedAppointmentSlots(bookedCases.map(c => c.timeSlot));
     res.json(bookedSlots);
   } catch (e) {
     console.error("GetBookedSlots ERROR:", e);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+// Get available appointment slots for a public booking form.
+exports.getAvailableSlots = async (req, res) => {
+  try {
+    const { date } = req.query;
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).json({ message: "Please select a valid doctor." });
+    }
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(`${date}T00:00:00Z`)) || new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10) !== date) {
+      return res.status(400).json({ message: "Please provide a valid appointment date." });
+    }
+
+    const doctor = await Doctor.exists({ _id: req.params.id });
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found." });
+    }
+
+    const bookedCases = await Case.find({
+      doctorId: req.params.id,
+      appointmentDate: date,
+      timeSlot: { $ne: null }
+    }).select("timeSlot");
+    const bookedSlots = new Set(getOccupiedAppointmentSlots(bookedCases.map((patientCase) => patientCase.timeSlot)));
+
+    res.json(getAppointmentSlots().filter((slot) => !bookedSlots.has(slot)));
+  } catch (e) {
+    console.error("GetAvailableSlots ERROR:", e);
     res.status(500).json({ message: "Server Error" });
   }
 };

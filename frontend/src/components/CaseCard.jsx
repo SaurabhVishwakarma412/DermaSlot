@@ -110,6 +110,14 @@ const CaseCard = ({ caseData, onClickOverride }) => {
         </div>
       )}
 
+      {caseData.visitType === "offline" && caseData.visitToken && (
+        <div className={`text-[11px] px-2 py-1 rounded mb-2 font-semibold ${
+          darkMode ? "bg-green-900/20 text-green-400" : "bg-green-50 text-green-700"
+        }`}>
+          Clinic visit token: {caseData.visitToken}
+        </div>
+      )}
+
       {/* Doctor Notes */}
       {caseData.status === "completed" && caseData.doctorNotes && (
         <p className={`text-[11px] italic border-t pt-2 mt-2 ${darkMode ? "border-gray-700 text-gray-400" : "border-gray-100"}`}>
