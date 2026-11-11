@@ -11,7 +11,7 @@ pipeline {
             steps {
                 script {
                     if (isUnix()) {
-                        sh 'cd backend && npm ci || npm install && npm test'
+                        sh 'cd backend && (npm ci || npm install) && npm test'
                     } else {
                         bat 'cd backend && (npm ci || npm install) && npm test'
                     }
