@@ -42,13 +42,20 @@ jobs:
       - name: Deploy to Server via SSH
         if: ${{ secrets.EC2_HOST != '' && secrets.EC2_SSH_KEY != '' }}
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          BACKEND_ENV: ${{ secrets.BACKEND_ENV }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER || 'ubuntu' }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          envs: BACKEND_ENV
           script: |
             cd ~/devops-derma || git clone https://github.com/SaurabhVishwakarma412/PedoDerma.git ~/devops-derma
             cd ~/devops-derma
+            git pull origin main
+            if [ -n "$BACKEND_ENV" ]; then
+              echo "$BACKEND_ENV" > backend/.env
+              chmod 600 backend/.env
+            fi
             docker-compose pull
             docker-compose up -d --remove-orphans
-

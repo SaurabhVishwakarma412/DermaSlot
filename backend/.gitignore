@@ -1,0 +1,19 @@
+# Backend Secrets & Local Env
+.env
+.env.*
+.env.local
+!.env.example
+
+# Dependencies
+node_modules/
+npm-debug.log*
+
+# Uploads & User Data
+uploads/
+src/uploads/
+!uploads/.gitkeep
+!src/uploads/.gitkeep
+
+# Logs
+logs/
+*.log

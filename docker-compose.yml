@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Local MongoDB database for turnkey offline/local deployment
   mongo:
@@ -30,20 +28,14 @@ services:
     restart: unless-stopped
     ports:
       - "${BACKEND_PORT:-5000}:5000"
+    env_file:
+      - ./backend/.env
     environment:
       PORT: 5000
-      NODE_ENV: production
+      NODE_ENV: ${NODE_ENV:-production}
       MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017/dermaslot}
       JWT_SECRET: ${JWT_SECRET:-supersecret_jwt_key_pedoderma_devops_change_in_prod}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173,http://localhost:80}
-      CLOUD_NAME: ${CLOUD_NAME:-}
-      API_KEY: ${API_KEY:-}
-      API_SECRET: ${API_SECRET:-}
-      EMAIL_USER: ${EMAIL_USER:-}
-      EMAIL_PASS: ${EMAIL_PASS:-}
-      ADMIN_NAME: ${ADMIN_NAME:-Platform Admin}
-      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin@12345}
     volumes:
       - backend-uploads:/app/uploads
     depends_on:
