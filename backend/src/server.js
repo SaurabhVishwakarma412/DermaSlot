@@ -7,8 +7,6 @@ const app = require("./app");
 const { getAllowedOrigins, isAllowedOrigin } = require("./config/cors");
 const PORT = process.env.PORT || 5000;
 
-connectDB();
-
 const server = http.createServer(app);
 const io = socketIO(server, {
   cors: {
@@ -94,6 +92,16 @@ io.on("connection", (socket) => {
   });
 });
 
-server.listen(PORT, () =>
-  console.log(`Server running on port ${PORT}. Allowed origins: ${getAllowedOrigins().join(", ")}`)
-);
+const startServer = async () => {
+  try {
+    await connectDB();
+    server.listen(PORT, () =>
+      console.log(`Server running on port ${PORT}. Allowed origins: ${getAllowedOrigins().join(", ")}`)
+    );
+  } catch (error) {
+    console.error(`Server startup failed: ${error.name || "Error"}${error.code ? ` (${error.code})` : ""}`);
+    process.exitCode = 1;
+  }
+};
+
+startServer();

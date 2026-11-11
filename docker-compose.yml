@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  # Local MongoDB database for turnkey offline/local deployment
+  mongo:
+    image: mongo:7.0
+    container_name: pedoderma_mongodb
+    restart: unless-stopped
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    environment:
+      MONGO_INITDB_DATABASE: dermaslot
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - pedoderma-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Express + Node.js API Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: ${BACKEND_IMAGE:-saurabhkv/project-pedo-backend:latest}
+    container_name: pedoderma_backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-5000}:5000"
+    environment:
+      PORT: 5000
+      NODE_ENV: production
+      MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017/dermaslot}
+      JWT_SECRET: ${JWT_SECRET:-supersecret_jwt_key_pedoderma_devops_change_in_prod}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173,http://localhost:80}
+      CLOUD_NAME: ${CLOUD_NAME:-}
+      API_KEY: ${API_KEY:-}
+      API_SECRET: ${API_SECRET:-}
+      EMAIL_USER: ${EMAIL_USER:-}
+      EMAIL_PASS: ${EMAIL_PASS:-}
+      ADMIN_NAME: ${ADMIN_NAME:-Platform Admin}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin@12345}
+    volumes:
+      - backend-uploads:/app/uploads
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - pedoderma-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:5000/healthz || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # React + Vite + Nginx Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:5000}
+        VITE_SOCKET_URL: ${VITE_SOCKET_URL:-http://localhost:5000}
+    image: ${FRONTEND_IMAGE:-saurabhkv/project-pedo-frontend:latest}
+    container_name: pedoderma_frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - pedoderma-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost/healthz || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+networks:
+  pedoderma-network:
+    driver: bridge
+
+volumes:
+  mongo-data:
+  backend-uploads:

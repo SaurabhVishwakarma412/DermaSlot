@@ -111,7 +111,11 @@ const SubmitCase = () => {
       } catch (requestError) {
         if (active) {
           setAvailableSlots([]);
-          setSlotsError(requestError.response?.data?.message || "Unable to load appointment slots.");
+          setSlotsError(
+            requestError.response?.status === 404
+              ? "Appointment availability is not enabled on the connected server yet. Deploy the latest backend and try again."
+              : requestError.response?.data?.message || "Unable to load appointment slots. Please check the server connection and try again."
+          );
         }
       } finally {
         if (active) setSlotsLoading(false);

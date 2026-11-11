@@ -2,6 +2,11 @@
   "name": "pedo-derma",
   "private": true,
   "scripts": {
+    "test": "npm --prefix backend test",
+    "deploy": "docker-compose up -d --build",
+    "deploy:k8s": "kubectl apply -f k8s/",
+    "stop": "docker-compose down",
+    "logs": "docker-compose logs -f",
     "backend": "npm --prefix backend start",
     "backend:dev": "npm --prefix backend run dev",
     "frontend": "npm --prefix frontend run dev",
