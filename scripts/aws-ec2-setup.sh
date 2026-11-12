@@ -43,3 +43,4 @@ echo "Please log out and log back in, or run:"
 echo "  newgrp docker"
 echo "Then clone your repo and run: npm run deploy"
 echo "=========================================="
+
