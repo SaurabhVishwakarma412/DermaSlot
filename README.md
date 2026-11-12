@@ -38,91 +38,69 @@ A full-stack **MERN** (MongoDB, Express.js, React.js, Node.js) based web applica
 
 ## 📁 Folder Structure
 
-### **Frontend**
-
 ```
-"frontend/src/
-│── components/
-│   ├── Navbar.jsx
-│   ├── Footer.jsx
-│   ├── FileUpload.jsx
-│   ├── Input.jsx
-│   ├── CaseCard.jsx
-|   ├── Logo.jsx
+devops-derma/
+├── .github/
+│   └── workflows/
+│       └── deploy.yml              # CI/CD automated deployment workflow
 │
-│── pages/
-│   ├── Home.jsx
-│   ├── About.jsx
-│   ├── Contact.jsx
-│   ├── Login.jsx
-│   ├── Register.jsx
-│   ├── ParentDashboard.jsx
-│   ├── SubmitCase.jsx
-│   ├── CaseDetails.jsx
-│   ├── DoctorLogin.jsx
-|   ├── DoctorList.jsx
-│   ├── DoctorDashboard.jsx
-│   ├── CaseReview.jsx
-|   ├── Messaging.jsx
-|   ├── DoctorMessaging.jsx
+├── backend/
+│   ├── src/
+│   │   ├── config/                 # Cloudinary, CORS, DB, Multer configs
+│   │   │   ├── cloudinary.js
+│   │   │   ├── cors.js
+│   │   │   ├── db.js
+│   │   │   └── multer.js
+│   │   ├── controllers/            # Auth, case, contact, doctor controllers
+│   │   ├── middleware/             # JWT auth & role-based middleware
+│   │   ├── models/                 # Mongoose schemas (User, Doctor, Case, Message)
+│   │   ├── routes/                 # Express API route endpoints
+│   │   ├── utils/                  # Token generation, email sending, appointment slots
+│   │   ├── app.js                  # Express app setup & health probes
+│   │   ├── seedAdmin.js            # Initial admin seed script
+│   │   ├── seedDoctor.js           # Doctor seeding utility
+│   │   └── server.js               # HTTP & Socket.IO server entrypoint
+│   ├── tests/
+│   │   └── app.test.js             # Automated unit & health probe tests
+│   ├── .dockerignore               # Docker build exclusions
+│   ├── .env.example                # Environment variables template
+│   ├── .gitignore                  # Git secret & dependency exclusion rules
+│   ├── Dockerfile                  # Production Node.js Alpine container
+│   └── package.json                # Backend scripts & dependencies
 │
-│── services/
-│   ├── api.js
-│   ├── patientAPI.js
-│   ├── doctorAPI.js
+├── frontend/
+│   ├── public/                     # Static assets & favicon
+│   ├── src/
+│   │   ├── assets/                 # Images & icons
+│   │   ├── components/             # Reusable UI components (Navbar, Footer, Input, etc.)
+│   │   ├── context/                # React context (AuthContext)
+│   │   ├── pages/                  # Route views (Home, Dashboards, Case submit, etc.)
+│   │   ├── services/               # Axios API clients
+│   │   ├── utils/                  # Frontend appointment & chat utilities
+│   │   ├── App.css
+│   │   ├── App.jsx                 # App routing & layout
+│   │   ├── index.css
+│   │   └── main.jsx                # Application root mount
+│   ├── .dockerignore               # Docker build exclusions
+│   ├── .env.example                # Frontend environment template
+│   ├── .gitignore                  # Git exclusion rules
+│   ├── Dockerfile                  # Multi-stage Nginx Alpine container
+│   ├── nginx.conf                  # Nginx configuration (SPA routing & security)
+│   ├── package.json                # Frontend dependencies & scripts
+│   └── vite.config.js              # Vite & Tailwind configuration
 │
-│── context/
-│   └── AuthContext.jsx
+├── k8s/
+│   ├── deployment.yaml             # All-in-one Kubernetes manifest (ConfigMap, Deployments, Services, Ingress)
+│   └── secret.template.yaml        # Template for Kubernetes secrets
 │
-└── App.jsx
-```
-
----
-
-### **Backend**
-
-
-```
-backend/
-│── src/
-│   ├── config/
-│   │   ├── db.js
-│   │   └── multer.js
-│   │
-│   ├── models/
-│   │   ├── User.js
-│   │   ├── Doctor.js
-|   |   ├── Message.js
-│   │   └── Case.js
-│   │
-│   ├── controllers/
-│   │   ├── authController.js
-│   │   ├── caseController.js
-│   │   └── doctorController.js
-│   │
-│   ├── middleware/
-│   │   ├── authMiddleware.js
-│   │   └── roleMiddleware.js
-│   │
-│   ├── routes/
-│   │   ├── authRoutes.js
-│   │   ├── caseRoutes.js
-|   |   ├── messageRoutes.js
-│   │   └── doctorRoutes.js
-│   │
-│   ├── utils/
-│   │   └── generateToken.js
-|   ├── uploads/
-│   │   └── cases/
-│   │
-│   ├── app.js
-|   ├── seedDoctor.js
-│   └── server.js
-|
-├── uploads/
-│   └── cases/
-│
-└── .env
+├── .env.docker.example             # Docker Compose environment template
+├── .gitignore                      # Root Git ignore rules (secrets, keys, node_modules)
+├── deploy.bat                      # 1-click Windows deployment script
+├── deploy.sh                       # 1-click Linux/macOS deployment script
+├── DEVOPS.md                       # Comprehensive DevOps & deployment manual
+├── docker-compose.yml              # Multi-container orchestration (Backend, Frontend, MongoDB)
+├── Jenkinsfile                     # 3-stage Declarative Jenkins pipeline
+└── package.json                    # Root shortcuts (npm run deploy, npm test, etc.)
 ```
 
 ---
@@ -172,12 +150,31 @@ Parent Sees Diagnosis Report
 ```
 ---
 
-## 🛠️ Installation Steps
+## 🛠️ Installation & Running
 
 ### Clone the repository
-- git clone https://github.com/SaurabhVishwakarma412/PedoDerma.git
+```bash
+git clone https://github.com/SaurabhVishwakarma412/PedoDerma.git
+cd devops-derma
+```
 
-### Run locally
+### Option 1: 🐳 1-Click Run with Docker (Recommended)
+
+Run the entire application stack (Frontend, Backend, MongoDB) in one command:
+```bash
+npm run deploy
+```
+*(Or execute `./deploy.sh` on Linux / `deploy.bat` on Windows)*
+
+- 🌐 **Frontend UI**: [http://localhost:5173](http://localhost:5173)
+- 🔌 **Backend API**: [http://localhost:5000](http://localhost:5000)
+
+To stop all containers:
+```bash
+npm run stop
+```
+
+### Option 2: Run Locally without Docker
 
 Install dependencies in both applications, then run the backend and frontend in separate terminals:
 
@@ -188,7 +185,9 @@ npm run backend:dev
 npm run frontend
 ```
 
-The frontend uses `frontend/.env` and sends API requests to `http://localhost:5000/api` by default. For a deployed frontend, set `VITE_API_URL` to the public backend URL in the hosting provider's environment variables; `localhost` only points to the visitor's own computer.
+The frontend sends API requests to `http://localhost:5000/api` by default.
+
+> 📖 **DevOps Manual**: For Kubernetes cluster deployment (`kubectl apply -f k8s/`), Jenkins pipeline, GitHub Actions CI/CD, and secrets management, see [DEVOPS.md](DEVOPS.md).
 
 
 ---
