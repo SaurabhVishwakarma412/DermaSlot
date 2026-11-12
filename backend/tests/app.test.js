@@ -3,6 +3,7 @@ const { test, describe } = require("node:test");
 const assert = require("node:assert");
 const http = require("node:http");
 const app = require("../src/app");
+const { getMetrics, recordRequest } = require("../src/utils/metrics");
 
 /**
  * Helper to dispatch in-memory HTTP requests to an Express application
@@ -81,5 +82,21 @@ describe("Backend Application & DevOps Health Probes", () => {
     assert.ok(res.json);
     assert.ok(["ok", "unavailable"].includes(res.json.status));
     assert.ok(["connected", "disconnected"].includes(res.json.database));
+  });
+
+  test("GET /metrics (Prometheus Scrape Endpoint) should return formatted plain text", async () => {
+    const res = await request(app, { method: "GET", url: "/metrics" });
+    assert.strictEqual(res.statusCode, 200);
+    assert.ok(res.body.includes("process_uptime_seconds"));
+    assert.ok(res.body.includes("nodejs_memory_heap_used_bytes"));
+    assert.ok(res.body.includes("pedoderma_http_requests_total"));
+  });
+
+  test("Metrics collector records and formats metrics correctly", () => {
+    recordRequest("GET", "/test-metric", 200, 42);
+    const metricsOutput = getMetrics({ databaseConnected: true });
+    assert.ok(metricsOutput.includes('route="/test-metric"'));
+    assert.ok(metricsOutput.includes("pedoderma_db_connection_status 1"));
+    assert.ok(metricsOutput.includes("pedoderma_http_request_duration_ms_total"));
   });
 });

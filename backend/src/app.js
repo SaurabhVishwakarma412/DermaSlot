@@ -4,8 +4,20 @@ const cors = require("cors");
 const path = require("path");
 const mongoose = require("mongoose");
 const { isAllowedOrigin } = require("./config/cors");
+const { recordRequest, getMetrics } = require("./utils/metrics");
 
 const app = express();
+
+// Request metrics tracking middleware for Prometheus
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    const route = req.route ? req.route.path : req.path;
+    recordRequest(req.method, route, res.statusCode, duration);
+  });
+  next();
+});
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -41,6 +53,13 @@ app.get("/api/health", (req, res) => {
     status: databaseConnected ? "ok" : "unavailable",
     database: databaseConnected ? "connected" : "disconnected",
   });
+});
+
+// Prometheus metrics endpoint
+app.get("/metrics", (req, res) => {
+  const databaseConnected = mongoose.connection.readyState === 1;
+  res.setHeader("Content-Type", "text/plain; version=0.0.4; charset=utf-8");
+  res.send(getMetrics({ databaseConnected }));
 });
 
 // Routes

@@ -1,0 +1,109 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "Backend Uptime (Seconds)",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "process_uptime_seconds{job=\"pedoderma-backend\"}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "title": "Database Connection Status",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "pedoderma_db_connection_status{job=\"pedoderma-backend\"}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 0 },
+      "id": 3,
+      "title": "Memory Usage (MB)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "nodejs_memory_heap_used_bytes{job=\"pedoderma-backend\"} / 1024 / 1024",
+          "legendFormat": "Heap Used",
+          "refId": "A"
+        },
+        {
+          "expr": "nodejs_memory_heap_total_bytes{job=\"pedoderma-backend\"} / 1024 / 1024",
+          "legendFormat": "Heap Total",
+          "refId": "B"
+        },
+        {
+          "expr": "nodejs_memory_rss_bytes{job=\"pedoderma-backend\"} / 1024 / 1024",
+          "legendFormat": "RSS",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "id": 4,
+      "title": "HTTP Request Volume by Route",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (route, status) (rate(pedoderma_http_requests_total{job=\"pedoderma-backend\"}[1m]))",
+          "legendFormat": "{{route}} ({{status}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "id": 5,
+      "title": "Process CPU Usage",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "rate(process_cpu_user_seconds_total{job=\"pedoderma-backend\"}[1m])",
+          "legendFormat": "CPU User",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(process_cpu_system_seconds_total{job=\"pedoderma-backend\"}[1m])",
+          "legendFormat": "CPU System",
+          "refId": "B"
+        }
+      ]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["pedoderma", "monitoring"],
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "PedoDerma Overview Dashboard",
+  "uid": "pedoderma-overview",
+  "version": 1
+}

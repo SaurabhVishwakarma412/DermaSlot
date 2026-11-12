@@ -2,8 +2,9 @@ pipeline {
     agent any
 
     environment {
-        BACKEND_IMAGE = "saurabhkv/project-pedo-backend:latest"
-        FRONTEND_IMAGE = "saurabhkv/project-pedo-frontend:latest"
+        DOCKER_USER = "saurabhkv"
+        BACKEND_IMAGE = "${DOCKER_USER}/project-pedo-backend:latest"
+        FRONTEND_IMAGE = "${DOCKER_USER}/project-pedo-frontend:latest"
     }
 
     stages {
@@ -19,7 +20,7 @@ pipeline {
             }
         }
 
-        stage('Build & Push Docker Images') {
+        stage('Build & Push to Docker Hub') {
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub-creds',
@@ -49,13 +50,13 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy to AWS / Server') {
             steps {
                 script {
                     if (isUnix()) {
-                        sh 'docker-compose pull && docker-compose up -d'
+                        sh 'docker-compose pull && docker-compose up -d --remove-orphans'
                     } else {
-                        bat 'docker-compose pull & docker-compose up -d'
+                        bat 'docker-compose pull & docker-compose up -d --remove-orphans'
                     }
                 }
             }

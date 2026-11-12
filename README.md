@@ -93,14 +93,21 @@ devops-derma/
 │   ├── deployment.yaml             # All-in-one Kubernetes manifest (ConfigMap, Deployments, Services, Ingress)
 │   └── secret.template.yaml        # Template for Kubernetes secrets
 │
+├── monitoring/                     # Grafana auto-provisioned dashboards & datasources
+│   └── grafana/provisioning/
+│
+├── scripts/
+│   └── aws-ec2-setup.sh            # 1-command AWS EC2 Docker bootstrap script
+│
 ├── .env.docker.example             # Docker Compose environment template
 ├── .gitignore                      # Root Git ignore rules (secrets, keys, node_modules)
 ├── deploy.bat                      # 1-click Windows deployment script
 ├── deploy.sh                       # 1-click Linux/macOS deployment script
 ├── DEVOPS.md                       # Comprehensive DevOps & deployment manual
-├── docker-compose.yml              # Multi-container orchestration (Backend, Frontend, MongoDB)
+├── docker-compose.yml              # Multi-container orchestration (App, Mongo, Prometheus, Grafana)
 ├── Jenkinsfile                     # 3-stage Declarative Jenkins pipeline
-└── package.json                    # Root shortcuts (npm run deploy, npm test, etc.)
+├── package.json                    # Root shortcuts (npm run deploy, npm test, etc.)
+└── prometheus.yml                  # Prometheus scrape configuration
 ```
 
 ---
@@ -168,6 +175,8 @@ npm run deploy
 
 - 🌐 **Frontend UI**: [http://localhost:5173](http://localhost:5173)
 - 🔌 **Backend API**: [http://localhost:5000](http://localhost:5000)
+- 📊 **Prometheus**: [http://localhost:9091](http://localhost:9091)
+- 📈 **Grafana**: [http://localhost:3001](http://localhost:3001) *(login: `admin` / `admin`)*
 
 To stop all containers:
 ```bash
