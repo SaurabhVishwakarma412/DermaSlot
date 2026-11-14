@@ -99,6 +99,7 @@ devops-derma/
 ├── scripts/
 │   └── aws-ec2-setup.sh            # 1-command AWS EC2 Docker bootstrap script
 │
+├── .env.example                    # Root environment variables template
 ├── .env.docker.example             # Docker Compose environment template
 ├── .gitignore                      # Root Git ignore rules (secrets, keys, node_modules)
 ├── deploy.bat                      # 1-click Windows deployment script

@@ -1,18 +1,22 @@
 # ==========================================
 # SECRETS & ENVIRONMENT FILES (NEVER PUSH)
 # ==========================================
+.env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 *.env
 *.env.*
-*.env.local
-*.env.development.local
-*.env.test.local
-*.env.production.local
-.env
-*/.env
-*/.env.*
-!*.env.example
-!*/.env.example
-!*.env.docker.example
+**/.env
+**/.env.*
+**/*.env
+**/*.env.*
+!**/.env.example
+!**/*.env.example
+!**/.env.docker.example
+!**/*.env.docker.example
 
 # Kubernetes secret manifests
 *secret*.yaml

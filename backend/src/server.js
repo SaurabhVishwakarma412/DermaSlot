@@ -8,6 +8,7 @@ const { getAllowedOrigins, isAllowedOrigin } = require("./config/cors");
 const PORT = process.env.PORT || 5000;
 
 const server = http.createServer(app);
+
 const io = socketIO(server, {
   cors: {
     origin: (origin, callback) => {
