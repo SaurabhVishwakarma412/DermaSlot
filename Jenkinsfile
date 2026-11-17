@@ -5,6 +5,7 @@ pipeline {
     environment {
         BACKEND_IMAGE = 'saurabhkv/dermaslot-backend'
         FRONTEND_IMAGE = 'saurabhkv/dermaslot-frontend'
+        APP_SERVER = 'ubuntu@172.31.6.84'
     }
 
     stages {
@@ -47,7 +48,6 @@ pipeline {
             }
         }
 
-
         stage('Docker Push') {
             steps {
                 withCredentials([
@@ -59,7 +59,7 @@ pipeline {
                 ]) {
                     sh '''
                         echo "$DOCKER_PASS" | docker login \
-                        -u "$DOCKER_USER" --password-stdin
+                            -u "$DOCKER_USER" --password-stdin
 
                         docker push $BACKEND_IMAGE:latest
                         docker push $FRONTEND_IMAGE:latest
@@ -69,11 +69,30 @@ pipeline {
                 }
             }
         }
+
+        stage('Deploy to Application EC2') {
+            steps {
+                withCredentials([
+                    sshUserPrivateKey(
+                        credentialsId: 'app-ec2-ssh',
+                        keyFileVariable: 'SSH_KEY',
+                        usernameVariable: 'SSH_USER'
+                    )
+                ]) {
+                    sh '''
+                        ssh -i "$SSH_KEY" \
+                            -o StrictHostKeyChecking=accept-new \
+                            "$SSH_USER@172.31.6.84" \
+                            "cd /opt/dermaslot && docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d --remove-orphans && docker compose -f docker-compose.prod.yml ps"
+                    '''
+                }
+            }
+        }
     }
 
     post {
         success {
-            echo 'DermaSlot CI/CD Pipeline Successful!'
+            echo 'DermaSlot CI/CD Pipeline and Deployment Successful!'
         }
 
         failure {
