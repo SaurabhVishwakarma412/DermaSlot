@@ -1,4 +1,4 @@
-
+# frontend/Dockerfile
 # ==========================================
 # Stage 1: Build React + Vite Application
 # ==========================================

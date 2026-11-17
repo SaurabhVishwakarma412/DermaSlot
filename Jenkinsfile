@@ -40,12 +40,13 @@ pipeline {
                     docker build -t $BACKEND_IMAGE:latest ./backend
 
                     docker build \
-                    --build-arg VITE_API_URL=/api \
-                    --build-arg VITE_SOCKET_URL= \
-                    -t $FRONTEND_IMAGE:latest ./frontend
+                        --build-arg VITE_API_URL= \
+                        --build-arg VITE_SOCKET_URL= \
+                        -t $FRONTEND_IMAGE:latest ./frontend
                 '''
             }
         }
+
 
         stage('Docker Push') {
             steps {
