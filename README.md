@@ -249,6 +249,3 @@ B.Tech CSE • Lovely Professional University
 
 ---
 
-🌟 **Star this repo** if you like the project!  
-T e s t i n g   J e n k i n s   a u t o m a t i c   p o l l i n g  
- 
