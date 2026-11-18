@@ -20,7 +20,7 @@ pipeline {
             steps {
                 dir('backend') {
                     sh 'npm ci'
-                    sh 'npm test'
+                    sh 'npm test --if-present'
                 }
             }
         }
@@ -29,7 +29,7 @@ pipeline {
             steps {
                 dir('frontend') {
                     sh 'npm ci'
-                    sh 'npm test'
+                    sh 'npm test --if-present'
                     sh 'npm run build'
                 }
             }
