@@ -60,6 +60,7 @@ const Login = () => {
         login(user, token);
         navigate("/parent/dashboard");
       } else {
+        // Call real doctor login endpoint
         const response = await API.post("/doctors/login", {
           email: form.email,
           password: form.password
