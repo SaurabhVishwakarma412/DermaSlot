@@ -21,7 +21,7 @@ A full-stack **MERN** (MongoDB, Express.js, React.js, Node.js) based web applica
 
 ### 🗂 Admin
 - Manage doctors data
-
+- View analytics and total case counts
 
 ---
 
