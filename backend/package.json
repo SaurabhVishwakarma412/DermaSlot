@@ -7,8 +7,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "seed:admin": "node src/seedAdmin.js",
-    "seed:doctor": "node src/seedDoctor.js"
+    "seed:admin": "node src/seedAdmin.js"
   },
   "keywords": [],
   "author": "",

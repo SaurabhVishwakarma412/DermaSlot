@@ -9,8 +9,6 @@
     "logs": "docker-compose logs -f",
     "backend": "npm --prefix backend start",
     "backend:dev": "npm --prefix backend run dev",
-    "seed:admin": "npm --prefix backend run seed:admin",
-    "seed:doctor": "npm --prefix backend run seed:doctor",
     "frontend": "npm --prefix frontend run dev",
     "frontend:build": "npm --prefix frontend run build"
   }
